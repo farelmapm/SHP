@@ -1,0 +1,8 @@
+# Ignore all files in the ToCheck directory except example.txt
+ToCheck/*
+!ToCheck/example.txt
+
+# Ignore README.md, archive.py, and note.txt
+README.md
+archive.py
+note.txt
