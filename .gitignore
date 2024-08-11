@@ -3,6 +3,5 @@ ToCheck/*
 !ToCheck/example.txt
 
 # Ignore README.md, archive.py, and note.txt
-README.md
 archive.py
 note.txt
