@@ -15,46 +15,14 @@
     To Add in the future:
     1. auto request -> parse ke txt -> txtnya di check (to do, later, sometime in the future)
 '''
+import argparse
+from Utils import CustomLogger as log 
+from Utils import RiskCalculator as rc
 
-# Logging and Stuff
-GREEN = "\033[92m"
-BLUE = "\033[94m"
-YELLOW = "\033[93m"
-RED = "\033[91m"
-RESET = "\033[0m"
-
-def risk(a,b,c,headerToCheck):
-    # a - pass, b - warning, c - error, headerToCheck - Header Name
-    if a / (a+b+c) == 1:
-        return (f'{headerToCheck} {GREEN}SECURE{RESET}')
-    elif a / (a+b+c) >= 0.65:
-        return (f'{headerToCheck} {YELLOW}WARNING{RESET}')
-    else:
-        return (f'{headerToCheck} {RED}FAILED{RESET}')    
-
-def success(message):
-    print(f"\t[{GREEN}✓{RESET}] {message}")
-
-def success_with_xtratab(message):
-    print(f"\t\t[{GREEN}✓{RESET}] {message}")
-
-def info(message):
-    print(f"\t[{BLUE}*{RESET}] {message}")
-
-def info_with_xtratab(message):
-    print(f"\t\t[{BLUE}*{RESET}] {message}")
-
-def warning(message):
-    print(f"\t[{YELLOW}!{RESET}] {message}")
-
-def warning_with_xtratab(message):
-    print(f"\t\t[{YELLOW}!{RESET}] {message}")
-
-def error(message):
-    print(f"\t[{RED}x{RESET}] {message}")
-
-def error_with_xtratab(message):
-    print(f"\t\t[{RED}x{RESET}] {message}")
+banner = """
+Secure Header Protocol: \n
+\nHeader Checker for Request and Response via txt file.
+"""
 
 # Adding the Parser
 def parse_headers_and_body(data):
@@ -89,9 +57,9 @@ def read_file(file_path):
             content = file.read()
         return content
     except FileNotFoundError:
-        return error("File not found.")
+        return log.error("File not found.")
     except Exception as e:
-        return error(f"An error occurred: {e}")
+        return log.error(f"An error occurred: {e}")
 
 # Cookie Checker
 def setcookieChecker(data):
@@ -119,17 +87,17 @@ def setcookieChecker(data):
         }
         if (secureAttribute['expires'] == False and secureAttribute['Max-Age'] == True):
             if(value == 'Max-Age' and int(secureAttribute[value]) <= 86400): # under 1 day
-                success_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age of under 86400 (1 day), with the value of {secureAttribute[value]}')
+                log.success_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age of under 86400 (1 day), with the value of {secureAttribute[value]}')
                 aCounter+=1
             elif(value == 'Max-Age' and int(secureAttribute[value]) >= 86400): # greater than 1 day
-                warning_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age greater than 86400 (1 day)')
+                log.warning_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age greater than 86400 (1 day)')
                 bCounter+=1
         # cari tau max value for expire
         elif (secureAttribute['expires'] == True and secureAttribute['Max-Age'] == False):
-            success_with_xtratab(f'Set-Cookie for {cookieName} has expires attribute.')
+            log.success_with_xtratab(f'Set-Cookie for {cookieName} has expires attribute.')
             aCounter+=1
         elif (secureAttribute['expires'] == False and secureAttribute['Max-Age'] == False):
-            error_with_xtratab(f'Set-Cookie for {cookieName} has no expires or max-age attribute!')
+            log.error_with_xtratab(f'Set-Cookie for {cookieName} has no expires or max-age attribute!')
             cCounter+=1
         for value in secureAttribute:
             if (value == 'expires' or value == 'Max-Age'):
@@ -137,16 +105,16 @@ def setcookieChecker(data):
             if(value == 'Strict' or value == 'Lax' or value == 'None' and secureAttribute[value] == False):
                 continue
             elif(value == 'Strict' or value == 'Lax' and secureAttribute[value] == True):
-                success_with_xtratab(f'Set-Cookie for {cookieName} has SameSite={value} attribute.')
+                log.success_with_xtratab(f'Set-Cookie for {cookieName} has SameSite={value} attribute.')
                 aCounter+=1
             elif(value == 'None' and secureAttribute['Secure'] == False):
-                warning_with_xtratab(f'Set-Cookie for {cookieName} is using SameSite={value} but missing Secure attribute!')
+                log.warning_with_xtratab(f'Set-Cookie for {cookieName} is using SameSite={value} but missing Secure attribute!')
                 bCounter+=1
             if(secureAttribute[value] == True):
-                success_with_xtratab(f'Set-Cookie for {cookieName} has {value} attribute.')
+                log.success_with_xtratab(f'Set-Cookie for {cookieName} has {value} attribute.')
                 aCounter+=1
             if(secureAttribute[value] == False):
-                error_with_xtratab(f'Set-Cookie for {cookieName} is missing {value} attribute.')
+                log.error_with_xtratab(f'Set-Cookie for {cookieName} is missing {value} attribute.')
                 cCounter+=1
     elif(countCookie > 1):
         for x in data['Set-Cookie']:
@@ -164,20 +132,20 @@ def setcookieChecker(data):
 
             if (secureAttribute['expires'] == False and secureAttribute['Max-Age'] == True):
                 if(value == 'Max-Age' and int(secureAttribute[value]) <= 86400): # under 1 day
-                    success_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age of under 86400 (1 day), with the value of {secureAttribute[value]}')
+                    log.success_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age of under 86400 (1 day), with the value of {secureAttribute[value]}')
                     aCounter+=1
                     continue
                 elif(value == 'Max-Age' and int(secureAttribute[value]) >= 86400): # greater than 1 day
-                    warning_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age greater than 86400 (1 day)')
+                    log.warning_with_xtratab(f'Set-Cookie for {cookieName} has a Max-Age greater than 86400 (1 day)')
                     bCounter+=1
                     continue
             # cari tau max value for expire - No Answer :') ywd wkwk
             elif (secureAttribute['expires'] == True and secureAttribute['Max-Age'] == False):
-                success_with_xtratab(f'Set-Cookie for {cookieName} has expires attribute.')
+                log.success_with_xtratab(f'Set-Cookie for {cookieName} has expires attribute.')
                 aCounter+=1
                 continue
             elif (secureAttribute['expires'] == False and secureAttribute['Max-Age'] == False):
-                error_with_xtratab(f'Set-Cookie for {cookieName} has no expires or max-age attribute!')
+                log.error_with_xtratab(f'Set-Cookie for {cookieName} has no expires or max-age attribute!')
                 cCounter+=1
             for value in secureAttribute:
                 if (value == 'expires' or value == 'Max-Age'):
@@ -185,18 +153,18 @@ def setcookieChecker(data):
                 if(value == 'Strict' or value == 'Lax' or value == 'None' and secureAttribute[value] == False):
                     continue
                 elif(value == 'Strict' or value == 'Lax' and secureAttribute[value] == True):
-                    success_with_xtratab(f'Set-Cookie for {cookieName} has SameSite={value} attribute.')
+                    log.success_with_xtratab(f'Set-Cookie for {cookieName} has SameSite={value} attribute.')
                     aCounter+=1
                 elif(value == 'None' and secureAttribute['Secure'] == False):
-                    warning_with_xtratab(f'Set-Cookie for {cookieName} is using SameSite={value} but missing Secure attribute!')
+                    log.warning_with_xtratab(f'Set-Cookie for {cookieName} is using SameSite={value} but missing Secure attribute!')
                     bCounter+=1
                 if(secureAttribute[value] == True):
-                    success_with_xtratab(f'Set-Cookie for {cookieName} has {value} attribute.')
+                    log.success_with_xtratab(f'Set-Cookie for {cookieName} has {value} attribute.')
                     aCounter+=1
                 if(secureAttribute[value] == False):
-                    error_with_xtratab(f'Set-Cookie for {cookieName} is missing {value} attribute.')
+                    log.error_with_xtratab(f'Set-Cookie for {cookieName} is missing {value} attribute.')
                     cCounter+=1
-    result =  risk(aCounter,bCounter,cCounter,'Set-Cookie')
+    result =  rc.risk(aCounter,bCounter,cCounter,'Set-Cookie')
     return result
 
 # HSTS Checker            
@@ -214,18 +182,18 @@ def hstsChecker(data):
     }
     for value in secureAttribute:
         if(value == 'max-age' and int(secureAttribute[value]) >= 31536000):
-            success(f'HSTS for {value} is already following standard of at least 1 year (31536000), used {secureAttribute[value]}')
+            log.success(f'HSTS for {value} is already following standard of at least 1 year (31536000), used {secureAttribute[value]}')
             aCounter+=1
         elif(value == 'max-age' and int(secureAttribute[value]) < 31536000):
-            warning(f'HSTS for {value} is not following the standard of at least 1 year, used {secureAttribute[value]}')
+            log.warning(f'HSTS for {value} is not following the standard of at least 1 year, used {secureAttribute[value]}')
             bCounter+=1
         if(secureAttribute[value] == True):
-            success(f'HSTS for {value} is set on the Header.')
+            log.success(f'HSTS for {value} is set on the Header.')
             aCounter+=1
         if(secureAttribute[value] == False):
-            error(f'HSTS of {value} is missing!')
+            log.error(f'HSTS of {value} is missing!')
             cCounter+=1
-    result = risk(aCounter,bCounter,cCounter,'Strict-Transport-Security')
+    result = rc.risk(aCounter,bCounter,cCounter,'Strict-Transport-Security')
     return result
 
 # CSP Checker
@@ -281,14 +249,14 @@ def cspChecker(data):
             'script' : 'script' in cspSources[key]
         }
         if cspList['none'] and all(value == False for key, value in cspList.items() if key != 'none'):
-            success_with_xtratab(f'CSP only has none, it\'s secure.')
+            log.success_with_xtratab(f'CSP only has none, it\'s secure.')
             aCounter+=1
             continue
         if cspList['nonce-'] == True:
-            success_with_xtratab(f'CSP has the secure attribute of nonce-')
+            log.success_with_xtratab(f'CSP has the secure attribute of nonce-')
             aCounter+=1
             if cspList['sha256-'] == True:
-                success_with_xtratab(f'CSP has the secure attribute of sha256-')
+                log.success_with_xtratab(f'CSP has the secure attribute of sha256-')
                 aCounter+=1
                 continue
         sdExist = False
@@ -342,73 +310,171 @@ def cspChecker(data):
         if(len(to_print_for_proto) != 28):
             if(sdExist == False and wildcard_check == False):
                 final_string = f'CSP {to_print_for_data}, {to_print_for_proto} in danger. Make sure to only allow resources download over HTTPS'
-                warning_with_xtratab(final_string)
+                log.warning_with_xtratab(final_string)
                 bCounter+=1
             elif(sdExist and wildcard_check == True or wildcard_check == False):
                 final_string = f'CSP {to_print_for_data} {to_print_for_proto} Secure.'
-                success_with_xtratab(final_string)
+                log.success_with_xtratab(final_string)
                 aCounter+=1
             elif(sdExist == False and wildcard_check):
                 final_string = f'CSP {to_print_for_data} and \'*\' exist, {to_print_for_proto} Unsafe.'
-                error_with_xtratab(final_string)
+                log.error_with_xtratab(final_string)
                 cCounter+=1
             if(key == 'form-action' and cspList['self'] == False):
-                error_with_xtratab(f'CSP of form-action need at least \'self\' attribute to be secure!')
+                log.error_with_xtratab(f'CSP of form-action need at least \'self\' attribute to be secure!')
                 cCounter+=1
             elif(key == 'form-action' and cspList['self'] == True):
-                success_with_xtratab(f'CSP of form-action has the minimum attribute of \'self\'.')
+                log.success_with_xtratab(f'CSP of form-action has the minimum attribute of \'self\'.')
                 aCounter+=1
         elif(len(to_print_for_proto) == 28):
             if(sdExist == False and wildcard_check == False):
                 final_string = f'CSP {to_print_for_data}, {to_print_for_proto}.'
-                warning_with_xtratab(final_string)
+                log.warning_with_xtratab(final_string)
                 bCounter+=1
             elif(sdExist and wildcard_check == True or wildcard_check == False):
                 final_string = f'CSP {to_print_for_data} {to_print_for_proto}.'
-                success_with_xtratab(final_string)
+                log.success_with_xtratab(final_string)
                 aCounter+=1
             elif(sdExist == False and wildcard_check):
                 final_string = f'CSP {to_print_for_data} and \'*\' exist, {to_print_for_proto}.'
-                error_with_xtratab(final_string)
+                log.error_with_xtratab(final_string)
                 cCounter+=1
             if(key == 'form-action' and cspList['self'] == False):
-                error_with_xtratab(f'CSP of form-action need at least \'self\' attribute to be secure!')
+                log.error_with_xtratab(f'CSP of form-action need at least \'self\' attribute to be secure!')
                 cCounter+=1
             elif(key == 'form-action' and cspList['self'] == True):
-                success_with_xtratab(f'CSP of form-action has the minimum attribute of \'self\'.')
+                log.success_with_xtratab(f'CSP of form-action has the minimum attribute of \'self\'.')
                 aCounter+=1
         noNeedToCheckAgain = ['http:', 'https:', 'none', 'nonce-', 'sha256', 'data:', '*.', '*','blob:', 'strict-dynamic', 'self']
         for value in cspList:
             # form-action has a special condition
             if(key != 'form-action' and value == 'self'):
-                warning_with_xtratab(f'CSP is using a \'self\' and could be dangerous if the using host JSONP, AngularJS or user upload-file')
+                log.warning_with_xtratab(f'CSP is using a \'self\' and could be dangerous if the using host JSONP, AngularJS or user upload-file')
             if(cspList[value] == True and value not in noNeedToCheckAgain):
-                error_with_xtratab(f'CSP is using a possibly unsafe method of \'{value}\'')
+                log.error_with_xtratab(f'CSP is using a possibly unsafe method of \'{value}\'')
                 cCounter+=1
-    result = risk(aCounter,bCounter,cCounter,'Content-Security-Policy')
+    result = rc.risk(aCounter,bCounter,cCounter,'Content-Security-Policy')
     # print(aCounter,bCounter,cCounter)
     return result
 
-# Opening Response
+# Information Header 
+def infoHeaderChecker(data):
+    print(
+"""
+========================================================
+|     Checking for Information Leakage Possibility     |
+========================================================
+"""
+    )
+    information_headers = {
+        'X-Powered-By',
+        'Server',
+        'X-AspNet-Version',
+        'X-AspNetMvc-Version',
+        'X-Drupal-Cache',
+        'X-Jenkins',
+        'X-Joomla-Token',
+        "X-Magento-Vary"
+        "X-Pingback",
+        "X-Generator",
+        "X-Runtime",
+        "Via",
+        "X-Cache",
+        "X-Backend-Server",
+        "Content-Location",
+        "Public-Key-Pins"
+    }
 
-response_content = read_file("./ToCheck/response.txt")
-parsed_data, body = parse_headers_and_body(response_content)
+    found = {}
+    for headers in data:
+        if headers in information_headers:
+            found[headers] = True
+    
+    if len(found) > 0:
+        print(f"Information Header(s) was found! {log.bigWarning()} {log.bigError()}\n")
+        for headers in found:
+            log.warning(f'{headers} was found in the response. Information disclosure is possible')
+    else:
+        print(f"No Information Header(s) was found. {log.bigSuccess()}\n" )
+    print("")
 
-# Checking for functionality
-result_setCookie = setcookieChecker(parsed_data)
-result_HSTS = hstsChecker(parsed_data)
-result_CSP =  cspChecker(parsed_data)
+# Caching Header
+def cachingHeaderChecker(data):
+    print(
+"""
+========================================================
+|          Checking for Cache Control Headers          |
+========================================================
+"""
+)
+    cacheHeaders = {
+        "Expires",
+        "Pragma",
+        "Vary",
+        "Etag",
+        "Last-Modified",
+        "Age",
+        "Warning",
+        "Cache-Control"
+    }
+    found = {}
+    for headers in data:
+        if headers in cacheHeaders:
+            found[headers] = True
+    
+    if len(found) > 0:
+        print(f"Cache Control Header(s) was found! {log.bigWarning()} {log.bigError()}\n")
+        for headers in found:
+            log.warning(f'{headers} was found in the response.')
+    else:
+        print(f"No Cache Header(s) was found. {log.bigWarning()} {log.bigSuccess()}\n" )
+    print("")
 
-print(
-'''
+# Security Header Check
+def SecureResponseHeaderCheck(data):
+    print(
+"""
+========================================================
+|             Checking for Secure Headers              |
+========================================================
+"""
+    )
+    result_setCookie = setcookieChecker(data)
+    result_HSTS = hstsChecker(data)
+    result_CSP =  cspChecker(data)
+
+    print(
+"""
 ========================================================
 |                       RESULT                         |
 ========================================================
-'''
-)
-print(result_setCookie)
-print(result_HSTS)
-print(result_CSP)
+"""
+    )
+    print(result_setCookie)
+    print(result_HSTS)
+    print(result_CSP)
 
+def main():
+    # add Parser Obejct to enable --help
+    # add description to tools
+    parser = argparse.ArgumentParser(description=f"{banner}")
 
-# print(body)
+    # Add the --file argument
+    parser.add_argument("--file", required=True, help="Path to the response file")
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Call the SecureHeaderCheck function with the file argument
+    response_content = read_file(args.file)
+    parsed_data, body = parse_headers_and_body(response_content)
+
+    # First Check for Information Headers
+    infoHeaderChecker(parsed_data)
+    # Second Check for Cache Control headers
+    cachingHeaderChecker(parsed_data)
+    # Third Check for the Secure Header if they exist
+    SecureResponseHeaderCheck(parsed_data)
+
+if __name__ == "__main__":
+    main()
