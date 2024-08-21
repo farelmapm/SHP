@@ -61,6 +61,90 @@ def read_file(file_path):
     except Exception as e:
         return log.error(f"An error occurred: {e}")
 
+# OWASP Proposed Value
+def OWASPproposed(data):
+    print()
+    aCounter = 0
+    bCounter = 0
+    cCounter = 0
+    print(
+"""
+========================================================
+|         Check if OWASP Proposed Header Exist         |
+========================================================
+"""
+    )
+    secureHeaders = {
+        "Strict-Transport-Security": ["max-age=31536000", "includeSubDomains"],
+        "X-Frame-Options": ["deny"],
+        "Content-Security-Policy": [
+            "default-src 'self'", 
+            "form-action 'self'", 
+            "object-src 'none'", 
+            "frame-ancestors 'none'", 
+            "upgrade-insecure-requests", 
+            "block-all-mixed-content"
+        ],
+        "X-Permitted-Cross-Domain-Policies": ["none"],
+        "Referrer-Policy": ["no-referrer"],
+        "Clear-Site-Data": ["cache", "cookies", "storage"],
+        "Cross-Origin-Embedder-Policy": ["require-corp"],
+        "Cross-Origin-Opener-Policy": ["same-origin"],
+        "Cross-Origin-Resource-Policy": ["same-origin"],
+        "Permissions-Policy": [
+            "accelerometer", "autoplay", "camera", "cross-origin-isolated", 
+            "display-capture", "encrypted-media", "fullscreen", "geolocation", 
+            "gyroscope", "keyboard-map", "magnetometer", "microphone", "midi", 
+            "payment", "picture-in-picture", "public-credentials-get", "screen-wake-lock", 
+            "sync-xhr", "usb", "web-share", "xr-spatial-tracking", 
+            "clipboard-read", "clipboard-write", "gamepad", "hid", 
+            "idle-detection", "interest-cohort", "serial", "unload"
+        ],
+        "Cache-Control": ["no-store", "max-age=0"]
+    }
+    for headers in data:
+        original_key = next((key for key in secureHeaders if key.lower() == headers), None)
+        if headers.lower() in (key.lower() for key in secureHeaders):
+            print(original_key)
+            if original_key != None and len(secureHeaders[original_key]) > 1:
+                # print(len(secureHeaders[original_key]), headers)
+                for value in secureHeaders[original_key]:
+                    if any(value in headersValue for headersValue in data[headers]):
+                        log.success_with_xtratab(f'{value} exist on {original_key}')
+                        aCounter+=1
+                    else:
+                        log.warning_with_xtratab(f'{value} is missing on {original_key}')
+                        bCounter+=1
+            elif original_key != None and len(secureHeaders[original_key]) == 1:
+                if value in data[headers]:
+                    log.success_with_xtratab(f'{value} exist on {original_key}')
+                    aCounter+=1
+                else:
+                    log.warning_with_xtratab(f'{value} is missing on {original_key}')
+                    bCounter+=1
+        else:
+            if original_key != None and len(secureHeaders[original_key]) > 1:
+                # print(len(secureHeaders[original_key]), headers)
+                for value in secureHeaders[original_key]:
+                    if any(value in headersValue for headersValue in data[headers]):
+                        log.success_with_xtratab(f'{value} exist on {original_key}')
+                        aCounter+=1
+                    else:
+                        log.warning_with_xtratab(f'{value} is missing on {original_key}')
+                        bCounter+=1
+            elif original_key != None and len(secureHeaders[original_key]) == 1:
+                if value in data[headers]:
+                    log.success_with_xtratab(f'{value} exist on {original_key}')
+                    aCounter+=1
+                else:
+                    log.warning_with_xtratab(f'{value} is missing on {original_key}')
+                    bCounter+=1
+    if (aCounter / (aCounter + bCounter)) >= 0.8:
+        print(f"The Response Headers follows OWASP Secure Header Proposal {log.bigSuccess()}")
+    elif (aCounter / (aCounter + bCounter)) < 0.8 and (aCounter / (aCounter + bCounter)) >= 0.5:
+        print(f'The Response Headers Implement some of OWASP Secure Header Proposal {log.bigWarning()}')
+    elif (aCounter / (aCounter + bCounter)) < 0.5:
+        print(f'The Respone Headers is likely to be Customized or just Insecure {log.bigWarning()}')
 # Cookie Checker
 def setcookieChecker(data):
     # Set-Cookie
@@ -69,8 +153,13 @@ def setcookieChecker(data):
     cCounter = 0
     print('Set-Cookie')
     # Define how many cookies present in the data
-    countCookie = len(data['Set-Cookie'])
-    
+    countCookie = 0
+    if "Set-Cookie" in data:
+        countCookie = len(data['Set-Cookie'])
+    else:
+        log.info_with_xtratab("No Cookie was found in the response")
+        return rc.not_found("Set-Cookie")
+
     #Condition for Many Cookies and only single cookie
     if(countCookie == 1):
         x = data['Set-Cookie'][0]
@@ -174,10 +263,15 @@ def hstsChecker(data):
     cCounter = 0
     headerName = 'Strict-Transport-Security'
     print(headerName)
+    if headerName in data:
+        headerName = headerName
+    else:
+        headerName = headerName.lower()
+        print(headerName)
     x = data[headerName][0] #adding 0 to index the first data since it's only one string
     secureAttribute = {
         'max-age' : next((part.split('=', 1)[1] for part in x.split('; ') if part.startswith('max-age=')), None),
-        'includeSubDomains' : 'includeSubDomains' in x,
+        'includeSubdomains' : 'includeSubdomains' in x,
         'preload' : 'preload' in x
     }
     for value in secureAttribute:
@@ -201,8 +295,13 @@ def cspChecker(data):
     aCounter=0
     bCounter=0
     cCounter=0
+    headerName = 'Content-Security-Policy'
     print('Content-Security-Policy')
-    x = data['Content-Security-Policy'][0].split(';')
+    if headerName in data:
+        headerName = headerName
+    else:
+        headerName = headerName.lower()
+    x = data[headerName][0].split(';')
     # Valid CSP Directive Reference
     cspValidReference = [
         'default-src', 'script-src', 'style-src', 'img-src', 
@@ -387,7 +486,7 @@ def infoHeaderChecker(data):
 
     found = {}
     for headers in data:
-        if headers in information_headers:
+        if headers in information_headers or headers in (key.lower() for key in information_headers):
             found[headers] = True
     
     if len(found) > 0:
@@ -419,7 +518,7 @@ def cachingHeaderChecker(data):
     }
     found = {}
     for headers in data:
-        if headers in cacheHeaders:
+        if headers in cacheHeaders or headers in (key.lower() for key in cacheHeaders):
             found[headers] = True
     
     if len(found) > 0:
@@ -469,11 +568,13 @@ def main():
     response_content = read_file(args.file)
     parsed_data, body = parse_headers_and_body(response_content)
 
-    # First Check for Information Headers
+    # # # First Check for Information Headers
     infoHeaderChecker(parsed_data)
-    # Second Check for Cache Control headers
+    # # Second Check for Cache Control headers
     cachingHeaderChecker(parsed_data)
-    # Third Check for the Secure Header if they exist
+    # # Third Check for OWASP SHP
+    OWASPproposed(parsed_data)
+    # # Fourth Check for the Secure Header if they exist
     SecureResponseHeaderCheck(parsed_data)
 
 if __name__ == "__main__":

@@ -13,3 +13,6 @@ def risk(a,b,c,headerToCheck):
         return (f'{headerToCheck} {YELLOW}WARNING{RESET}')
     else:
         return (f'{headerToCheck} {RED}FAILED{RESET}')   
+    
+def not_found(headerToCheck):
+    return (f'{headerToCheck} {BLUE}NOT FOUND{RESET}')
