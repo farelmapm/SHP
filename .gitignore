@@ -5,3 +5,6 @@ ToCheck/*
 # Ignore README.md, archive.py, and note.txt
 archive.py
 note.txt
+
+# Ignore pycache generated folder
+Utils/__pycache__
