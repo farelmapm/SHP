@@ -139,6 +139,9 @@ def OWASPproposed(data):
                 else:
                     log.warning_with_xtratab(f'{value} is missing on {original_key}')
                     bCounter+=1
+    if (aCounter + bCounter == 0):
+        print(f'The Respone Headers is likely to be Customized or just Insecure {log.bigWarning()}')
+        return
     if (aCounter / (aCounter + bCounter)) >= 0.8:
         print(f"The Response Headers follows OWASP Secure Header Proposal {log.bigSuccess()}")
     elif (aCounter / (aCounter + bCounter)) < 0.8 and (aCounter / (aCounter + bCounter)) >= 0.5:
